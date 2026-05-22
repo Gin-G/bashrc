@@ -1,0 +1,8 @@
+# Secrets and per-machine overrides
+bash/secrets.sh
+bash/bashrc.d/99-local.sh
+
+# Editor / OS detritus
+*.swp
+*.bak
+.DS_Store

@@ -1,0 +1,18 @@
+# Modular bash entry point.
+# Sources every bash/bashrc.d/*.sh alphabetically, then secrets if present.
+
+: "${DOTFILES_DIR:=$HOME/dotfiles}"
+export DOTFILES_DIR
+
+_df_d="$DOTFILES_DIR/bash/bashrc.d"
+if [ -d "$_df_d" ]; then
+    for _df_f in "$_df_d"/*.sh; do
+        [ -r "$_df_f" ] && . "$_df_f"
+    done
+    unset _df_f
+fi
+unset _df_d
+
+if [ -r "$DOTFILES_DIR/bash/secrets.sh" ]; then
+    . "$DOTFILES_DIR/bash/secrets.sh"
+fi

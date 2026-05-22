@@ -1,0 +1,14 @@
+# Per-machine local overrides. Copy to 99-local.sh; it is gitignored.
+# Loaded last (after all other 0X-/9X- modules) so it can override anything.
+
+# --- Default kube context for this host -------------------------------------
+# if command -v kubectl >/dev/null 2>&1; then
+#     kubectl config use-context my-local-cluster >/dev/null 2>&1
+# fi
+
+# --- Disable the kube segment in PS1 on this host ---------------------------
+# export DOTFILES_PROMPT_KUBE=0
+
+# --- Host-specific aliases --------------------------------------------------
+# alias work='cd ~/work/project'
+# alias vpn-up='sudo systemctl start openvpn-client@work'
