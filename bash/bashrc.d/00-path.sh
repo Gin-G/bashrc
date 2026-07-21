@@ -32,9 +32,13 @@ export HISTIGNORE='ls:ll:la:cd:pwd:exit:clear:history:h'
 shopt -s histappend 2>/dev/null || true
 shopt -s checkwinsize 2>/dev/null || true
 
-# Locale defaults
-export LANG="${LANG:-en_US.UTF-8}"
-export LC_ALL="${LC_ALL:-en_US.UTF-8}"
+# Locale defaults (only if not already set, and only if actually installed —
+# forcing an uninstalled locale makes bash print setlocale warnings).
+if [ -z "$LANG" ] && [ -z "$LC_ALL" ]; then
+    if locale -a 2>/dev/null | grep -qi '^en_US\.utf8$'; then
+        export LANG="en_US.UTF-8"
+    fi
+fi
 
 # Colored man pages via less termcap
 export LESS_TERMCAP_mb=$'\E[1;31m'
