@@ -32,13 +32,28 @@ export HISTIGNORE='ls:ll:la:cd:pwd:exit:clear:history:h'
 shopt -s histappend 2>/dev/null || true
 shopt -s checkwinsize 2>/dev/null || true
 
-# Locale defaults (only if not already set, and only if actually installed —
-# forcing an uninstalled locale makes bash print setlocale warnings).
-if [ -z "$LANG" ] && [ -z "$LC_ALL" ]; then
-    if locale -a 2>/dev/null | grep -qi '^en_US\.utf8$'; then
-        export LANG="en_US.UTF-8"
-    fi
+# Locale defaults. Sanitize LANG/LC_ALL if they name a locale that isn't
+# actually installed on this host (e.g. forwarded by an SSH client whose
+# local locale doesn't exist here) — an invalid value makes bash print
+# "setlocale: cannot change locale" warnings on every subshell. Only fall
+# back to en_US.UTF-8 if nothing usable was set and it's available.
+_locale_available() {
+    local want
+    want="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | tr -d '-')"
+    [ -n "$want" ] || return 1
+    locale -a 2>/dev/null | tr '[:upper:]' '[:lower:]' | tr -d '-' | grep -qxF "$want"
+}
+
+if [ -n "$LC_ALL" ] && ! _locale_available "$LC_ALL"; then
+    unset LC_ALL
 fi
+if [ -n "$LANG" ] && ! _locale_available "$LANG"; then
+    unset LANG
+fi
+if [ -z "$LANG" ] && [ -z "$LC_ALL" ] && _locale_available "en_US.UTF-8"; then
+    export LANG="en_US.UTF-8"
+fi
+unset -f _locale_available
 
 # Colored man pages via less termcap
 export LESS_TERMCAP_mb=$'\E[1;31m'
