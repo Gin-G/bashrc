@@ -29,6 +29,29 @@ __df_kube() {
     printf ' [\xe2\x8e\x88 %s:%s]' "$ctx" "$ns"
 }
 
+# kubectl is slow to start (large binary, often on NFS), so cache the kube
+# segment in __df_kube_seg and only rerun __df_kube when $KUBECONFIG or the
+# files it names change. Runs from PROMPT_COMMAND rather than a PS1 $(...)
+# subshell so the cache survives between prompts, and is also saved to a file
+# so new shells can reuse it.
+__df_kube_update() {
+    local key f cache
+    key="${DOTFILES_PROMPT_KUBE:-1}|${KUBECONFIG:-$HOME/.kube/config}"
+    local IFS=:
+    for f in ${KUBECONFIG:-$HOME/.kube/config}; do
+        key+="|$(stat -c '%y %s' -- "$f" 2>/dev/null)"
+    done
+    [ "$key" = "${__df_kube_key-}" ] && return 0
+    __df_kube_key=$key
+    cache="${XDG_CACHE_HOME:-$HOME/.cache}/dotfiles/kube-prompt"
+    if [ -r "$cache" ] && { IFS= read -r f && [ "$f" = "$key" ] && IFS= read -r __df_kube_seg; } <"$cache"; then
+        return 0
+    fi
+    __df_kube_seg="$(__df_kube)"
+    mkdir -p "${cache%/*}" 2>/dev/null &&
+        printf '%s\n%s\n' "$key" "$__df_kube_seg" >"$cache" 2>/dev/null
+}
+
 # Only set PS1 on interactive, non-dumb terminals.
 case "$-" in *i*) ;; *) return 0 ;; esac
 [ "$TERM" = "dumb" ] && return 0
@@ -41,7 +64,7 @@ fi
 PS1='${debian_chroot:+($debian_chroot)}'
 PS1+="${__df_c_green}\u@\h${__df_c_reset}:${__df_c_blue}\w${__df_c_reset}"
 PS1+="${__df_c_yellow}\$(__df_git_branch)${__df_c_reset}"
-PS1+="${__df_c_magenta}\$(__df_kube)${__df_c_reset}"
+PS1+="${__df_c_magenta}\${__df_kube_seg}${__df_c_reset}"
 PS1+="\n\$ "
 export PS1
 
@@ -51,4 +74,8 @@ case "$TERM" in
         PROMPT_COMMAND='printf "\033]0;%s@%s:%s\007" "$USER" "${HOSTNAME%%.*}" "${PWD/#$HOME/~}"'
         export PROMPT_COMMAND
         ;;
+esac
+case "${PROMPT_COMMAND-}" in
+    *__df_kube_update*) ;;
+    *) PROMPT_COMMAND="__df_kube_update${PROMPT_COMMAND:+; $PROMPT_COMMAND}" ;;
 esac

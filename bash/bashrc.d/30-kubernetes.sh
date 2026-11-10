@@ -61,8 +61,17 @@ alias kns='kubectl config set-context --current --namespace'
 
 # kubectl completion + bind to `k`
 if command -v kubectl >/dev/null 2>&1; then
+    # kubectl is slow to start (large binary, often on NFS), so cache the
+    # completion script and only regenerate it when the binary changes.
+    __df_kcomp="${XDG_CACHE_HOME:-$HOME/.cache}/dotfiles/kubectl-completion.bash"
+    __df_kbin="$(command -v kubectl)"
+    if [ ! -s "$__df_kcomp" ] || [ "$__df_kbin" -nt "$__df_kcomp" ]; then
+        mkdir -p "${__df_kcomp%/*}"
+        kubectl completion bash >"$__df_kcomp" 2>/dev/null || rm -f "$__df_kcomp"
+    fi
     # shellcheck disable=SC1090
-    source <(kubectl completion bash) 2>/dev/null || true
+    [ -s "$__df_kcomp" ] && source "$__df_kcomp"
+    unset __df_kcomp __df_kbin
     if declare -F __start_kubectl >/dev/null 2>&1; then
         complete -F __start_kubectl k
     fi
